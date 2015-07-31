@@ -372,7 +372,7 @@ dev_t dm_get_dev_t(const char *path)
 	dev_t uninitialized_var(dev);
 	struct block_device *bdev;
 
-	bdev = lookup_bdev(path);
+	bdev = lookup_bdev(path, 0);
 	if (IS_ERR(bdev))
 		dev = name_to_dev_t(path);
 	else {
@@ -393,14 +393,22 @@ int dm_get_device(struct dm_target *ti, const char *path, fmode_t mode,
 {
 	int r;
 	dev_t dev;
+	struct block_device *bdev;
 	struct dm_dev_internal *dd;
 	struct dm_table *t = ti->table;
 
 	BUG_ON(!t);
 
-	dev = dm_get_dev_t(path);
-	if (!dev)
-		return -ENODEV;
+	/* convert the path to a device */
+	bdev = lookup_bdev(path, 0);
+	if (IS_ERR(dev)) {
+		dev = name_to_dev_t(path);
+		if (!dev)
+			return -ENODEV;
+	} else {
+		dev = bdev->bd_dev;
+		bdput(bdev);
+	}
 
 	dd = find_device(&t->devices, dev);
 	if (!dd) {
