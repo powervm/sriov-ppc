@@ -49,6 +49,7 @@ CHECKFLAGS	+= -D__aarch64__
 
 ifeq ($(CONFIG_ARM64_MODULE_CMODEL_LARGE), y)
 KBUILD_CFLAGS_MODULE	+= -mcmodel=large
+KBUILD_CFLAGS_MODULE	+= $(call cc-option, -mpc-relative-literal-loads)
 endif
 
 ifeq ($(CONFIG_ARM64_MODULE_PLTS),y)
