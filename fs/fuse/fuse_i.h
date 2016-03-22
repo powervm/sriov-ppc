@@ -25,6 +25,7 @@
 #include <linux/kref.h>
 #include <linux/pid_namespace.h>
 #include <linux/user_namespace.h>
+#include <linux/kref.h>
 
 /** Max number of pages that can be used in a single read request */
 #define FUSE_MAX_PAGES_PER_REQ 32
