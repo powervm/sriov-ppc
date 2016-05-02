@@ -6,6 +6,10 @@ linux (4.6.0-0.1) UNRELEASED; urgency=low
 
   [ Upstream Kernel Changes ]
 
+  * rebase to v4.6-rc6
+
+  [ Upstream Kernel Changes ]
+
   * rebase to v4.6-rc5
     - LP: #1564712
     - LP: #1555912
