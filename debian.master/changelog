@@ -34,7 +34,7 @@ linux (4.6.0-0.1) UNRELEASED; urgency=low
 
  -- Tim Gardner <tim.gardner@canonical.com>  Mon, 25 Apr 2016 14:24:45 -0600
 
-linux (4.6.0-0.0) xenial; urgency=low
+linux (4.6.0-0.0) yakkety; urgency=low
 
   [ Kamal Mostafa ]
 
