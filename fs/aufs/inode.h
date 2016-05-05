@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Junjiro R. Okajima
+ * Copyright (C) 2005-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -422,7 +422,7 @@ static inline void au_icntnr_init(struct au_icntnr *c)
 #endif
 }
 
-static inline unsigned int au_iigen(struct inode *inode, struct au_iigen *iigen_arg)
+static inline unsigned int au_iigen(struct inode *inode, unsigned int *igflags)
 {
 	unsigned int gen;
 	struct au_iinfo *iinfo;
@@ -431,8 +431,8 @@ static inline unsigned int au_iigen(struct inode *inode, struct au_iigen *iigen_
 	iinfo = au_ii(inode);
 	iigen = &iinfo->ii_generation;
 	spin_lock(&iigen->ig_spin);
-	if (iigen_arg)
-		*iigen_arg = *iigen;
+	if (igflags)
+		*igflags = iigen->ig_flags;
 	gen = iigen->ig_generation;
 	spin_unlock(&iigen->ig_spin);
 
@@ -664,21 +664,21 @@ static inline void au_hn_resume(struct au_hinode *hdir)
 
 static inline void au_hn_imtx_lock(struct au_hinode *hdir)
 {
-	mutex_lock(&hdir->hi_inode->i_mutex);
+	inode_lock(hdir->hi_inode);
 	au_hn_suspend(hdir);
 }
 
 static inline void au_hn_imtx_lock_nested(struct au_hinode *hdir,
 					  unsigned int sc __maybe_unused)
 {
-	mutex_lock_nested(&hdir->hi_inode->i_mutex, sc);
+	inode_lock_nested(hdir->hi_inode, sc);
 	au_hn_suspend(hdir);
 }
 
 static inline void au_hn_imtx_unlock(struct au_hinode *hdir)
 {
 	au_hn_resume(hdir);
-	mutex_unlock(&hdir->hi_inode->i_mutex);
+	inode_unlock(hdir->hi_inode);
 }
 
 #endif /* __KERNEL__ */
