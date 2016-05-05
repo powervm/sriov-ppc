@@ -83,11 +83,6 @@ ifeq ($(DEB_BUILD_PROFILE),autopkgtest)
 flavours := $(firstword $(flavours))
 endif
 
-#
-# Disable until it catches up with the kernel.
-#
-do_zfs=false
-
 # Debian Build System targets
 binary: binary-indep binary-arch
 
