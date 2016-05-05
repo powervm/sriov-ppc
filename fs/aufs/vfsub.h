@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Junjiro R. Okajima
+ * Copyright (C) 2005-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 
 #include <linux/fs.h>
 #include <linux/mount.h>
+#include <linux/posix_acl.h>
 #include <linux/xattr.h>
 #include "debug.h"
 
@@ -51,7 +52,7 @@ enum {
 
 /* to debug easier, do not make them inlined functions */
 #define MtxMustLock(mtx)	AuDebugOn(!mutex_is_locked(mtx))
-#define IMustLock(i)		MtxMustLock(&(i)->i_mutex)
+#define IMustLock(i)		AuDebugOn(!inode_is_locked(i))
 
 /* ---------------------------------------------------------------------- */
 
@@ -76,6 +77,12 @@ static inline int vfsub_native_ro(struct inode *inode)
 		|| IS_IMMUTABLE(inode);
 }
 
+#ifdef CONFIG_AUFS_BR_FUSE
+int vfsub_test_mntns(struct vfsmount *mnt, struct super_block *h_sb);
+#else
+AuStubInt0(vfsub_test_mntns, struct vfsmount *mnt, struct super_block *h_sb);
+#endif
+
 /* ---------------------------------------------------------------------- */
 
 int vfsub_update_h_iattr(struct path *h_path, int *did);
@@ -92,6 +99,8 @@ int vfsub_atomic_open(struct inode *dir, struct dentry *dentry,
 		      struct vfsub_aopen_args *args, struct au_branch *br);
 int vfsub_kern_path(const char *name, unsigned int flags, struct path *path);
 
+struct dentry *vfsub_lookup_one_len_unlocked(const char *name,
+					     struct dentry *parent, int len);
 struct dentry *vfsub_lookup_one_len(const char *name, struct dentry *parent,
 				    int len);
 
@@ -214,6 +223,20 @@ static inline int vfsub_update_time(struct inode *h_inode, struct timespec *ts,
 	return generic_update_time(h_inode, ts, flags);
 	/* no vfsub_update_h_iattr() since we don't have struct path */
 }
+
+#ifdef CONFIG_FS_POSIX_ACL
+static inline int vfsub_acl_chmod(struct inode *h_inode, umode_t h_mode)
+{
+	int err;
+
+	err = posix_acl_chmod(h_inode, h_mode);
+	if (err == -EOPNOTSUPP)
+		err = 0;
+	return err;
+}
+#else
+AuStubInt0(vfsub_acl_chmod, struct inode *h_inode, umode_t h_mode);
+#endif
 
 long vfsub_splice_to(struct file *in, loff_t *ppos,
 		     struct pipe_inode_info *pipe, size_t len,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Junjiro R. Okajima
+ * Copyright (C) 2005-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -250,11 +250,13 @@ static int do_open_dir(struct file *file, int flags, struct file *h_file)
 	int err;
 	aufs_bindex_t bindex, btail;
 	struct dentry *dentry, *h_dentry;
+	struct vfsmount *mnt;
 
 	FiMustWriteLock(file);
 	AuDebugOn(h_file);
 
 	err = 0;
+	mnt = file->f_path.mnt;
 	dentry = file->f_path.dentry;
 	file->f_version = d_inode(dentry)->i_version;
 	bindex = au_dbstart(dentry);
@@ -266,6 +268,9 @@ static int do_open_dir(struct file *file, int flags, struct file *h_file)
 		if (!h_dentry)
 			continue;
 
+		err = vfsub_test_mntns(mnt, h_dentry->d_sb);
+		if (unlikely(err))
+			break;
 		h_file = au_h_open(dentry, bindex, flags, file, /*force_wr*/0);
 		if (IS_ERR(h_file)) {
 			err = PTR_ERR(h_file);
@@ -436,13 +441,11 @@ static int aufs_fsync_dir(struct file *file, loff_t start, loff_t end,
 	struct dentry *dentry;
 	struct inode *inode;
 	struct super_block *sb;
-	struct mutex *mtx;
 
 	err = 0;
 	dentry = file->f_path.dentry;
 	inode = d_inode(dentry);
-	mtx = &inode->i_mutex;
-	mutex_lock(mtx);
+	inode_lock(inode);
 	sb = dentry->d_sb;
 	si_noflush_read_lock(sb);
 	if (file)
@@ -457,7 +460,7 @@ static int aufs_fsync_dir(struct file *file, loff_t start, loff_t end,
 		fi_write_unlock(file);
 
 	si_read_unlock(sb);
-	mutex_unlock(mtx);
+	inode_unlock(inode);
 	return err;
 }
 
@@ -631,9 +634,9 @@ static int sio_test_empty(struct dentry *dentry, struct test_empty_arg *arg)
 	h_dentry = au_h_dptr(dentry, arg->bindex);
 	h_inode = d_inode(h_dentry);
 	/* todo: i_mode changes anytime? */
-	mutex_lock_nested(&h_inode->i_mutex, AuLsc_I_CHILD);
+	inode_lock_nested(h_inode, AuLsc_I_CHILD);
 	err = au_test_h_perm_sio(h_inode, MAY_EXEC | MAY_READ);
-	mutex_unlock(&h_inode->i_mutex);
+	inode_unlock(h_inode);
 	if (!err)
 		err = do_test_empty(dentry, arg);
 	else {

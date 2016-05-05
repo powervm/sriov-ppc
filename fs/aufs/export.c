@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Junjiro R. Okajima
+ * Copyright (C) 2005-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -406,9 +406,7 @@ static struct dentry *au_lkup_by_ino(struct path *path, ino_t ino,
 
 	/* do not call vfsub_lkup_one() */
 	dir = d_inode(parent);
-	mutex_lock(&dir->i_mutex);
-	dentry = vfsub_lookup_one_len(arg.name, parent, arg.namelen);
-	mutex_unlock(&dir->i_mutex);
+	dentry = vfsub_lookup_one_len_unlocked(arg.name, parent, arg.namelen);
 	AuTraceErrPtr(dentry);
 	if (IS_ERR(dentry))
 		goto out_name;
@@ -610,7 +608,7 @@ aufs_fh_to_dentry(struct super_block *sb, struct fid *fid, int fh_len,
 	ino = decode_ino(fh + Fh_ino);
 	/* it should never happen */
 	if (unlikely(ino == AUFS_ROOT_INO))
-		goto out;
+		goto out_unlock;
 
 	dir_ino = decode_ino(fh + Fh_dir_ino);
 	dentry = decode_by_ino(sb, ino, dir_ino);

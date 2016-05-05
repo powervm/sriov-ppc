@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Junjiro R. Okajima
+ * Copyright (C) 2005-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -83,7 +83,7 @@ void au_hn_reset(struct inode *inode, unsigned int flags)
 		if (!hi)
 			continue;
 
-		/* mutex_lock_nested(&hi->i_mutex, AuLsc_I_CHILD); */
+		/* inode_lock_nested(hi, AuLsc_I_CHILD); */
 		iwhdentry = au_hi_wh(inode, bindex);
 		if (iwhdentry)
 			dget(iwhdentry);
@@ -93,7 +93,7 @@ void au_hn_reset(struct inode *inode, unsigned int flags)
 			      flags & ~AuHi_XINO);
 		iput(hi);
 		dput(iwhdentry);
-		/* mutex_unlock(&hi->i_mutex); */
+		/* inode_unlock(hi); */
 	}
 }
 
@@ -322,11 +322,11 @@ static int hn_job(struct hn_job_args *a)
 	if (au_ftest_hnjob(a->flags, TRYXINO0)
 	    && a->inode
 	    && a->h_inode) {
-		mutex_lock_nested(&a->h_inode->i_mutex, AuLsc_I_CHILD);
+		inode_lock_nested(a->h_inode, AuLsc_I_CHILD);
 		if (!a->h_inode->i_nlink
 		    && !(a->h_inode->i_state & I_LINKABLE))
 			hn_xino(a->inode, a->h_inode); /* ignore this error */
-		mutex_unlock(&a->h_inode->i_mutex);
+		inode_unlock(a->h_inode);
 	}
 
 	/* make the generation obsolete */

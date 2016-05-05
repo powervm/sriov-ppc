@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Junjiro R. Okajima
+ * Copyright (C) 2005-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -159,8 +159,9 @@ static int au_rdu(struct file *file, struct aufs_rdu *rdu)
 	dentry = file->f_path.dentry;
 	inode = d_inode(dentry);
 #if 1
-	mutex_lock(&inode->i_mutex);
+	inode_lock(inode);
 #else
+	/* todo: create a new inline func inode_lock_killable() */
 	err = mutex_lock_killable(&inode->i_mutex);
 	AuTraceErr(err);
 	if (unlikely(err))
@@ -222,7 +223,7 @@ out_unlock:
 out_si:
 	si_read_unlock(arg.sb);
 out_mtx:
-	mutex_unlock(&inode->i_mutex);
+	inode_unlock(inode);
 out:
 	AuTraceErr(err);
 	return err;

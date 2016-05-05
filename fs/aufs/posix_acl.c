@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 Junjiro R. Okajima
+ * Copyright (C) 2014-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
  */
 
 #include <linux/fs.h>
-#include <linux/posix_acl.h>
 #include "aufs.h"
 
 struct posix_acl *aufs_get_acl(struct inode *inode, int type)
@@ -72,7 +71,7 @@ int aufs_set_acl(struct inode *inode, struct posix_acl *acl, int type)
 		},
 	};
 
-	mutex_lock(&inode->i_mutex);
+	inode_lock(inode);
 	if (inode->i_ino == AUFS_ROOT_INO)
 		dentry = dget(inode->i_sb->s_root);
 	else {
@@ -94,6 +93,6 @@ int aufs_set_acl(struct inode *inode, struct posix_acl *acl, int type)
 		err = 0;
 
 out:
-	mutex_unlock(&inode->i_mutex);
+	inode_unlock(inode);
 	return err;
 }

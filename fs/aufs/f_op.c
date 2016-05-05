@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Junjiro R. Okajima
+ * Copyright (C) 2005-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ int au_do_open_nondir(struct file *file, int flags, struct file *h_file)
 {
 	int err;
 	aufs_bindex_t bindex;
-	struct dentry *dentry;
+	struct dentry *dentry, *h_dentry;
 	struct au_finfo *finfo;
 	struct inode *h_inode;
 
@@ -42,10 +42,19 @@ int au_do_open_nondir(struct file *file, int flags, struct file *h_file)
 	memset(&finfo->fi_htop, 0, sizeof(finfo->fi_htop));
 	atomic_set(&finfo->fi_mmapped, 0);
 	bindex = au_dbstart(dentry);
-	if (!h_file)
+	if (!h_file) {
+		h_dentry = au_h_dptr(dentry, bindex);
+		err = vfsub_test_mntns(file->f_path.mnt, h_dentry->d_sb);
+		if (unlikely(err))
+			goto out;
 		h_file = au_h_open(dentry, bindex, flags, file, /*force_wr*/0);
-	else
+	} else {
+		h_dentry = h_file->f_path.dentry;
+		err = vfsub_test_mntns(file->f_path.mnt, h_dentry->d_sb);
+		if (unlikely(err))
+			goto out;
 		get_file(h_file);
+	}
 	if (IS_ERR(h_file))
 		err = PTR_ERR(h_file);
 	else {
@@ -63,6 +72,7 @@ int au_do_open_nondir(struct file *file, int flags, struct file *h_file)
 		/* file->f_ra = h_file->f_ra; */
 	}
 
+out:
 	return err;
 }
 
@@ -263,11 +273,11 @@ static void au_mtx_and_read_lock(struct inode *inode)
 	struct super_block *sb = inode->i_sb;
 
 	while (1) {
-		mutex_lock(&inode->i_mutex);
+		inode_lock(inode);
 		err = si_read_lock(sb, AuLock_FLUSH | AuLock_NOPLM);
 		if (!err)
 			break;
-		mutex_unlock(&inode->i_mutex);
+		inode_unlock(inode);
 		si_read_lock(sb, AuLock_NOPLMW);
 		si_read_unlock(sb);
 	}
@@ -295,7 +305,7 @@ static ssize_t aufs_write(struct file *file, const char __user *ubuf,
 
 out:
 	si_read_unlock(inode->i_sb);
-	mutex_unlock(&inode->i_mutex);
+	inode_unlock(inode);
 	return err;
 }
 
@@ -380,7 +390,7 @@ static ssize_t aufs_write_iter(struct kiocb *kio, struct iov_iter *iov_iter)
 
 out:
 	si_read_unlock(inode->i_sb);
-	mutex_unlock(&inode->i_mutex);
+	inode_unlock(inode);
 	return err;
 }
 
@@ -443,7 +453,7 @@ aufs_splice_write(struct pipe_inode_info *pipe, struct file *file, loff_t *ppos,
 
 out:
 	si_read_unlock(inode->i_sb);
-	mutex_unlock(&inode->i_mutex);
+	inode_unlock(inode);
 	return err;
 }
 
@@ -470,7 +480,7 @@ static long aufs_fallocate(struct file *file, int mode, loff_t offset,
 
 out:
 	si_read_unlock(inode->i_sb);
-	mutex_unlock(&inode->i_mutex);
+	inode_unlock(inode);
 	return err;
 }
 
@@ -613,7 +623,7 @@ static int aufs_fsync_nondir(struct file *file, loff_t start, loff_t end,
 
 out_unlock:
 	si_read_unlock(inode->i_sb);
-	mutex_unlock(&inode->i_mutex);
+	inode_unlock(inode);
 out:
 	return err;
 }
@@ -624,7 +634,7 @@ static int aufs_aio_fsync_nondir(struct kiocb *kio, int datasync)
 {
 	int err;
 	struct au_write_pre wpre;
-	struct inode *inode;
+	struct inode *inode, *h_inode;
 	struct file *file, *h_file;
 
 	err = 0; /* -EBADF; */ /* posix? */
@@ -643,26 +653,24 @@ static int aufs_aio_fsync_nondir(struct kiocb *kio, int datasync)
 	err = -ENOSYS;
 	h_file = au_hf_top(file);
 	if (h_file->f_op->aio_fsync) {
-		struct mutex *h_mtx;
-
-		h_mtx = &file_inode(h_file)->i_mutex;
+		h_inode = file_inode(h_file);
 		if (!is_sync_kiocb(kio)) {
 			get_file(h_file);
 			fput(file);
 		}
 		kio->ki_filp = h_file;
 		err = h_file->f_op->aio_fsync(kio, datasync);
-		mutex_lock_nested(h_mtx, AuLsc_I_CHILD);
+		inode_lock_nested(h_inode, AuLsc_I_CHILD);
 		if (!err)
 			vfsub_update_h_iattr(&h_file->f_path, /*did*/NULL);
 		/*ignore*/
-		mutex_unlock(h_mtx);
+		inode_unlock(h_inode);
 	}
 	au_write_post(inode, h_file, &wpre, /*written*/0);
 
 out_unlock:
 	si_read_unlock(inode->sb);
-	mutex_unlock(&inode->i_mutex);
+	inode_unlock(inode);
 out:
 	return err;
 }
@@ -684,6 +692,29 @@ static int aufs_fasync(int fd, struct file *file, int flag)
 
 	if (h_file->f_op->fasync)
 		err = h_file->f_op->fasync(fd, h_file, flag);
+	fput(h_file); /* instead of au_read_post() */
+
+out:
+	si_read_unlock(sb);
+	return err;
+}
+
+static int aufs_setfl(struct file *file, unsigned long arg)
+{
+	int err;
+	struct file *h_file;
+	struct super_block *sb;
+
+	sb = file->f_path.dentry->d_sb;
+	si_read_lock(sb, AuLock_FLUSH | AuLock_NOPLMW);
+
+	h_file = au_read_pre(file, /*keep_fi*/0);
+	err = PTR_ERR(h_file);
+	if (IS_ERR(h_file))
+		goto out;
+
+	arg |= vfsub_file_flags(file) & FASYNC; /* stop calling h_file->fasync */
+	err = setfl(/*unused fd*/-1, h_file, arg);
 	fput(h_file); /* instead of au_read_post() */
 
 out:
@@ -728,6 +759,7 @@ const struct file_operations aufs_file_fop = {
 	/* .aio_fsync	= aufs_aio_fsync_nondir, */
 	.fasync		= aufs_fasync,
 	/* .sendpage	= aufs_sendpage, */
+	.setfl		= aufs_setfl,
 	.splice_write	= aufs_splice_write,
 	.splice_read	= aufs_splice_read,
 #if 0
