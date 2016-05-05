@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Junjiro R. Okajima
+ * Copyright (C) 2005-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ struct seq_file;
 
 /* module parameters */
 extern int sysaufs_brs;
+extern bool au_userns;
 
 /* ---------------------------------------------------------------------- */
 

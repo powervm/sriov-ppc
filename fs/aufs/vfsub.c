@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005-2015 Junjiro R. Okajima
+ * Copyright (C) 2005-2016 Junjiro R. Okajima
  *
  * This program, aufs is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,9 +20,27 @@
  */
 
 #include <linux/namei.h>
+#include <linux/nsproxy.h>
 #include <linux/security.h>
 #include <linux/splice.h>
+#include "../fs/mount.h"
 #include "aufs.h"
+
+#ifdef CONFIG_AUFS_BR_FUSE
+int vfsub_test_mntns(struct vfsmount *mnt, struct super_block *h_sb)
+{
+	struct nsproxy *ns;
+
+	if (!au_test_fuse(h_sb) || !au_userns)
+		return 0;
+
+	ns = current->nsproxy;
+	/* no {get,put}_nsproxy(ns) */
+	return real_mount(mnt)->mnt_ns == ns->mnt_ns ? 0 : -EACCES;
+}
+#endif
+
+/* ---------------------------------------------------------------------- */
 
 int vfsub_update_h_iattr(struct path *h_path, int *did)
 {
@@ -135,6 +153,24 @@ int vfsub_kern_path(const char *name, unsigned int flags, struct path *path)
 	if (!err && d_is_positive(path->dentry))
 		vfsub_update_h_iattr(path, /*did*/NULL); /*ignore*/
 	return err;
+}
+
+struct dentry *vfsub_lookup_one_len_unlocked(const char *name,
+					     struct dentry *parent, int len)
+{
+	struct path path = {
+		.mnt = NULL
+	};
+
+	path.dentry = lookup_one_len_unlocked(name, parent, len);
+	if (IS_ERR(path.dentry))
+		goto out;
+	if (d_is_positive(path.dentry))
+		vfsub_update_h_iattr(&path, /*did*/NULL); /*ignore*/
+
+out:
+	AuTraceErrPtr(path.dentry);
+	return path.dentry;
 }
 
 struct dentry *vfsub_lookup_one_len(const char *name, struct dentry *parent,
