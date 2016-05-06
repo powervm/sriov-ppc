@@ -15,5 +15,5 @@ s390x	PKGVER-ABINUM	generic		PKGVER-ABINUM-generic		-	-
 # Ports
 # arch	version		flavour		installedname			suffix	bdep
 powerpc	PKGVER-ABINUM	powerpc-smp	PKGVER-ABINUM-powerpc-smp	-	-
-powerpc	PKGVER-ABINUM	powerpc64-smp	PKGVER-ABINUM-powerpc64-smp	-	-
+powerpc	PKGVER-ABINUM	generic		PKGVER-ABINUM-generic		-	-
 powerpc PKGVER-ABINUM	powerpc-e500mc	PKGVER-ABINUM-powerpc-e500mc	-	-
