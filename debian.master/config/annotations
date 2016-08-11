@@ -7241,7 +7241,7 @@ CONFIG_COREDUMP                                 policy<{'amd64': 'y', 'arm64': '
 CONFIG_SECCOMP                                  policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'i386': 'y', 'powerpc': 'y', 'ppc64el': 'y', 's390x': 'y'}>
 #
 CONFIG_BINFMT_SCRIPT                            mark<ENFORCED> note<required if 'init' is a shell script such as in initramfs-tools>
-#CONFIG_SECCOMP                                  mark<ENFORCED>
+CONFIG_SECCOMP                                  mark<ENFORCED>
 
 # Menu: Executable file formats / Emulations >> Architecture: arm
 
