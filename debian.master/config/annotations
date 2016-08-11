@@ -614,7 +614,7 @@ CONFIG_XILLYBUS_PCIE                            policy<{'amd64': 'm', 'arm64': '
 CONFIG_XILLYBUS_OF                              policy<{'arm64': 'm', 'armhf': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
 #
 CONFIG_DEVKMEM                                  mark<ENFORCED> note</dev/kmem is a large attack vector>
-#CONFIG_NVRAM                                    mark<ENFORCED> note<boot essential on powerpc LP:942193>
+CONFIG_NVRAM                                    mark<ENFORCED> note<boot essential on powerpc LP:942193>
 CONFIG_VIRTIO_CONSOLE				note<LP#1475078>
 
 # Menu: Device Drivers >> Character devices >> Enable TTY
