@@ -7313,7 +7313,7 @@ CONFIG_NTFS_FS                                  policy<{'amd64': 'm', 'arm64': '
 CONFIG_NTFS_DEBUG                               policy<{'amd64': 'n', 'arm64': 'n', 'armhf': 'n', 'i386': 'n', 'powerpc': 'n', 'ppc64el': 'n', 's390x': 'n'}>
 CONFIG_NTFS_RW                                  policy<{'amd64': 'n', 'arm64': 'n', 'armhf': 'n', 'i386': 'n', 'powerpc': 'n', 'ppc64el': 'n', 's390x': 'y'}>
 #
-#CONFIG_VFAT_FS                                  mark<ENFORCED> note<needed on arm to ensure we can write the kernel when replacing, LP#1584890>
+CONFIG_VFAT_FS                                  mark<ENFORCED> note<needed on arm to ensure we can write the kernel when replacing, LP#1584890>
 
 # Menu: File systems >> Distributed Lock Manager (DLM)
 CONFIG_DLM                                      policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm', 's390x': 'm'}>
