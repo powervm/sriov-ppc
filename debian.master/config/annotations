@@ -1295,11 +1295,11 @@ CONFIG_VGACON_SOFT_SCROLLBACK                   policy<{'amd64': 'n', 'i386': 'n
 CONFIG_MDA_CONSOLE                              policy<{'i386': 'm'}>
 CONFIG_DUMMY_CONSOLE_COLUMNS                    policy<{'amd64': '80', 'arm64': '80', 'i386': '80', 'powerpc': '80', 'ppc64el': '80'}>
 CONFIG_DUMMY_CONSOLE_ROWS                       policy<{'amd64': '25', 'arm64': '25', 'i386': '25', 'powerpc': '25', 'ppc64el': '25'}>
-CONFIG_FRAMEBUFFER_CONSOLE                      policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'i386': 'y', 'powerpc': 'y', 'ppc64el': 'y'}>
+CONFIG_FRAMEBUFFER_CONSOLE                      policy<{'amd64': 'y', 'arm64': 'n', 'armhf': 'y', 'i386': 'y', 'powerpc': 'y', 'ppc64el': 'y'}>
 CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY       policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'i386': 'y', 'powerpc': 'y', 'ppc64el': 'y'}>
 CONFIG_FRAMEBUFFER_CONSOLE_ROTATION             policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'i386': 'y', 'powerpc': 'y', 'ppc64el': 'y'}>
 #
-#CONFIG_FRAMEBUFFER_CONSOLE                      mark<ENFORCED> note<boot essential for grub2 console>
+CONFIG_FRAMEBUFFER_CONSOLE                      mark<ENFORCED> note<boot essential for grub2 console>
 
 # Menu: Device Drivers >> Graphics support >> Direct Rendering Manager (XFree86 4.1.0 and higher DRI support)
 CONFIG_DRM                                      policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm', 's390x': 'n'}>
