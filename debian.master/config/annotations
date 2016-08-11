@@ -2875,7 +2875,7 @@ CONFIG_THERM_WINDTUNNEL                         policy<{'powerpc-powerpc-smp': '
 CONFIG_THERM_ADT746X                            policy<{'powerpc-powerpc-smp': 'y'}>
 CONFIG_PMAC_RACKMETER                           policy<{'powerpc-generic': 'm', 'powerpc-powerpc-smp': 'm'}>
 #
-#CONFIG_THERM_ADT746X                            mark<ENFORCED> note<LP:#923094>
+CONFIG_THERM_ADT746X                            mark<ENFORCED> note<LP:#923094>
 
 # Menu: Device Drivers >> Macintosh device drivers >> Apple Desktop Bus (ADB) support
 CONFIG_ADB                                      policy<{'powerpc-powerpc-smp': 'y'}>
