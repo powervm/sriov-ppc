@@ -2555,7 +2555,7 @@ CONFIG_INPUT_AXP20X_PEK                         policy<{'amd64': 'm', 'arm64': '
 CONFIG_INPUT_TWL4030_PWRBUTTON                  policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
 CONFIG_INPUT_TWL4030_VIBRA                      policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
 CONFIG_INPUT_TWL6040_VIBRA                      policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
-CONFIG_INPUT_UINPUT                             policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'i386': 'y', 'powerpc': 'y', 'ppc64el': 'y'}>
+CONFIG_INPUT_UINPUT                             policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'powerpc-powerpc-e500mc': 'm', 'powerpc-powerpc64-emb': 'm', 'ppc64el': 'm'}>
 CONFIG_INPUT_PALMAS_PWRBUTTON                   policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
 CONFIG_INPUT_PCF50633_PMU                       policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
 CONFIG_INPUT_PCF8574                            policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
@@ -2579,7 +2579,7 @@ CONFIG_INPUT_DRV260X_HAPTICS                    policy<{'amd64': 'm', 'arm64': '
 CONFIG_INPUT_DRV2665_HAPTICS                    policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
 CONFIG_INPUT_DRV2667_HAPTICS                    policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
 #
-#CONFIG_INPUT_UINPUT                             mark<ENFORCED> note<LP:584812>
+CONFIG_INPUT_UINPUT                             mark<ENFORCED> note<LP:584812>
 
 # Menu: Device Drivers >> Input device support >> Generic input layer (needed for keyboard, mouse, ...) >> Mouse interface
 CONFIG_INPUT_MOUSEDEV                           policy<{'amd64': 'y', 'arm64': 'y', 'armhf': 'y', 'i386': 'y', 'powerpc': 'y', 'ppc64el': 'y'}>
