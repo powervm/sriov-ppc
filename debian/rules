@@ -84,9 +84,6 @@ ifeq ($(DEB_BUILD_PROFILE),autopkgtest)
 flavours := $(firstword $(flavours))
 endif
 
-# Temporarily disable zfs
-do_zfs = false
-
 # Debian Build System targets
 binary: binary-indep binary-arch
 
