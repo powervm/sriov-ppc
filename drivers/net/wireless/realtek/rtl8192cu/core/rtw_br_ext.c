@@ -54,6 +54,8 @@
 #endif
 #endif
 
+#include <net/ip6_checksum.h>
+
 #ifdef CONFIG_BR_EXT
 
 //#define BR_EXT_DEBUG
