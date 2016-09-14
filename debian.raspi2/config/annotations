@@ -9121,7 +9121,7 @@ CONFIG_ACPI_CONTAINER                           policy<{'amd64': 'y', 'arm64': '
 CONFIG_ACPI_HOTPLUG_MEMORY                      policy<{'amd64': 'y', 'i386': 'y'}>
 CONFIG_ACPI_SBS                                 policy<{'amd64': 'm', 'i386': 'm'}>
 CONFIG_ACPI_HED                                 policy<{'amd64': 'y', 'arm64': 'y', 'i386': 'y'}>
-CONFIG_ACPI_CUSTOM_METHOD                       policy<{'amd64': 'n', 'arm64': 'n', 'i386': 'n'}>
+CONFIG_ACPI_CUSTOM_METHOD                       policy<{'amd64': 'n', 'i386': 'n'}>
 CONFIG_ACPI_BGRT                                policy<{'amd64': 'y', 'i386': 'y'}>
 CONFIG_ACPI_REDUCED_HARDWARE_ONLY               policy<{'amd64': 'n', 'arm64': 'y', 'i386': 'n'}>
 CONFIG_ACPI_NFIT                                policy<{'amd64': 'm', 'i386': 'm'}>
