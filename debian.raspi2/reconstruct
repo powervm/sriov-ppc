@@ -1,4 +1,6 @@
 # Recreate any symlinks created since the orig.
+[ ! -L 'spl/rpm/redhat/spl-dkms.spec.in' ] && ln -sf '../generic/spl-dkms.spec.in' 'spl/rpm/redhat/spl-dkms.spec.in'
+[ ! -L 'spl/rpm/redhat/spl.spec.in' ] && ln -sf '../generic/spl.spec.in' 'spl/rpm/redhat/spl.spec.in'
 # Remove any files deleted from the orig.
 rm -f 'arch/powerpc/kernel/hmi.c'
 rm -f 'debian.master/abi/4.8.0-0.0/abiname'
