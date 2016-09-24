@@ -5581,7 +5581,7 @@ CONFIG_PATA_TRIFLEX                             policy<{'amd64': 'm', 'arm64': '
 CONFIG_PATA_VIA                                 policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
 CONFIG_PATA_WINBOND                             policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'm', 'powerpc': 'm', 'ppc64el': 'm'}>
 CONFIG_PATA_ACPI                                policy<{'amd64': 'm', 'arm64': 'm', 'i386': 'm'}>
-CONFIG_ATA_GENERIC                              policy<{'amd64': 'y', 'arm64': 'm', 'armhf': 'm', 'i386': 'y', 'powerpc': 'm', 'ppc64el': 'm'}>
+CONFIG_ATA_GENERIC                              policy<{'amd64': 'm', 'arm64': 'm', 'armhf': 'm', 'i386': 'y', 'powerpc': 'm', 'ppc64el': 'm'}>
 #
 CONFIG_PATA_HPT3X3_DMA                          note<DMA mode is documented problematic>
 CONFIG_ATA_PIIX					mark<ENFORCED> note<LP:1627324>
