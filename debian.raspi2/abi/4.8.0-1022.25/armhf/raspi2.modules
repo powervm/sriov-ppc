@@ -3404,6 +3404,7 @@ xillybus_of
 xor
 xor-neon
 xpad
+xr_usb_serial_common
 xsens_mt
 x_tables
 xt_addrtype
