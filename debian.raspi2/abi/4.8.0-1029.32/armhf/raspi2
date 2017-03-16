@@ -7917,6 +7917,7 @@ EXPORT_SYMBOL vmlinux 0xd17c2632	snd_jack_new
 EXPORT_SYMBOL vmlinux 0xd1816f32	frontswap_writethrough
 EXPORT_SYMBOL vmlinux 0xd187716d	of_io_request_and_map
 EXPORT_SYMBOL vmlinux 0xd18afd77	snd_pcm_hw_constraint_minmax
+EXPORT_SYMBOL vmlinux 0xd18cde78	debugfs_create_automount
 EXPORT_SYMBOL vmlinux 0xd1b2d6a3	DWC_PRINTF
 EXPORT_SYMBOL vmlinux 0xd1c84dfb	hdmi_audio_infoframe_pack
 EXPORT_SYMBOL vmlinux 0xd1d87e92	scsi_mlreturn_string
@@ -8081,7 +8082,6 @@ EXPORT_SYMBOL vmlinux 0xda206c7f	generic_ro_fops
 EXPORT_SYMBOL vmlinux 0xda239e43	__skb_get_hash_flowi6
 EXPORT_SYMBOL vmlinux 0xda263e15	scsi_host_set_state
 EXPORT_SYMBOL vmlinux 0xda295737	kmem_cache_alloc_bulk
-EXPORT_SYMBOL vmlinux 0xda36d52e	debugfs_create_automount
 EXPORT_SYMBOL vmlinux 0xda3d10a8	security_tun_dev_open
 EXPORT_SYMBOL vmlinux 0xda42bc27	snd_pcm_lib_preallocate_pages
 EXPORT_SYMBOL vmlinux 0xda46a119	bio_split
@@ -13820,6 +13820,7 @@ EXPORT_SYMBOL_GPL vmlinux 0x726f665d	snd_soc_add_card_controls
 EXPORT_SYMBOL_GPL vmlinux 0x72741f25	trace_vbprintk
 EXPORT_SYMBOL_GPL vmlinux 0x7278d328	all_vm_events
 EXPORT_SYMBOL_GPL vmlinux 0x727ffb16	dev_pm_opp_of_remove_table
+EXPORT_SYMBOL_GPL vmlinux 0x72812249	vfs_submount
 EXPORT_SYMBOL_GPL vmlinux 0x729658a4	exportfs_decode_fh
 EXPORT_SYMBOL_GPL vmlinux 0x72a7539a	fsnotify_alloc_group
 EXPORT_SYMBOL_GPL vmlinux 0x72b46d9e	wakeup_source_prepare
