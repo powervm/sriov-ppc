@@ -4851,6 +4851,7 @@ EXPORT_SYMBOL vmlinux 0x2c87352f	scsi_init_io
 EXPORT_SYMBOL vmlinux 0x2ca3d327	__genl_register_family
 EXPORT_SYMBOL vmlinux 0x2cd6322d	twl6040_power
 EXPORT_SYMBOL vmlinux 0x2ce49d5a	xdr_restrict_buflen
+EXPORT_SYMBOL vmlinux 0x2ced9e25	debugfs_create_automount
 EXPORT_SYMBOL vmlinux 0x2d0aad1e	unregister_netdev
 EXPORT_SYMBOL vmlinux 0x2d10724a	skb_orphan_partial
 EXPORT_SYMBOL vmlinux 0x2d140a58	genl_unlock
@@ -6540,7 +6541,6 @@ EXPORT_SYMBOL vmlinux 0x8dd37d7e	udp_lib_rehash
 EXPORT_SYMBOL vmlinux 0x8dded87e	from_kgid
 EXPORT_SYMBOL vmlinux 0x8de81a39	unlock_new_inode
 EXPORT_SYMBOL vmlinux 0x8dea58ef	seq_path
-EXPORT_SYMBOL vmlinux 0x8def608e	debugfs_create_automount
 EXPORT_SYMBOL vmlinux 0x8df3789f	snd_oss_info_register
 EXPORT_SYMBOL vmlinux 0x8df5669d	blk_rq_unmap_user
 EXPORT_SYMBOL vmlinux 0x8df92f66	memchr_inv
@@ -15985,6 +15985,7 @@ EXPORT_SYMBOL_GPL vmlinux 0xfc619abd	_nfs_display_fhandle
 EXPORT_SYMBOL_GPL vmlinux 0xfc65244c	usb_ifnum_to_if
 EXPORT_SYMBOL_GPL vmlinux 0xfc6e701b	page_endio
 EXPORT_SYMBOL_GPL vmlinux 0xfc91c5b5	svc_create
+EXPORT_SYMBOL_GPL vmlinux 0xfc9eab90	vfs_submount
 EXPORT_SYMBOL_GPL vmlinux 0xfca62fe8	md_find_rdev_nr_rcu
 EXPORT_SYMBOL_GPL vmlinux 0xfcb38a6c	hwmon_device_register_with_groups
 EXPORT_SYMBOL_GPL vmlinux 0xfcba4cd3	extcon_register_notifier
