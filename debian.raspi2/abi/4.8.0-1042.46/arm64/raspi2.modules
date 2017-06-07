@@ -323,7 +323,6 @@ bcm2835-gpiomem
 bcm2835_smi
 bcm2835_smi_dev
 bcm2835_smi_nand
-bcm2835_wdt
 bcm3510
 bcm590xx
 bcm590xx-regulator
