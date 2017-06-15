@@ -2051,7 +2051,6 @@ ocfs2_nodemanager
 ocfs2_stack_o2cb
 ocfs2_stack_user
 ocfs2_stackglue
-of_mmc_spi
 of_xilinx_wdt
 old_belkin-sir
 omap4-keypad
