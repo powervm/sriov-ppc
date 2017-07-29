@@ -623,6 +623,9 @@ static void __init pSeries_setup_arch(void)
 		ppc_md.power_save = pseries_lpar_idle;
 		ppc_md.enable_pmcs = pseries_lpar_enable_pmcs;
 #ifdef CONFIG_PCI_IOV
+		/* we need linux to probe and assign resources */
+		pci_clear_flags(PCI_PROBE_ONLY);
+		pci_add_flags(PCI_REASSIGN_ALL_RSRC);
 		ppc_md.pcibios_fixup_sriov = pci_ioda_fixup_iov_resources;
 	       	ppc_md.pcibios_iov_resource_alignment = pci_iov_resource_alignment;
 #endif
