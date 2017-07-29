@@ -33,6 +33,13 @@ extern struct pci_dev *isa_bridge_pcidev;	/* may be NULL if no ISA bus */
 struct device_node;
 struct pci_dn;
 
+/* is an open firmware vf */
+static inline bool is_of_vf(struct pci_dev *pdev) 
+{
+       if( !pdev )
+	       return false;
+	return ( pdev->is_virtfn &&  pdev->dev.of_node != NULL);
+} 
 void *pci_traverse_device_nodes(struct device_node *start,
 				void *(*fn)(struct device_node *, void *),
 				void *data);
