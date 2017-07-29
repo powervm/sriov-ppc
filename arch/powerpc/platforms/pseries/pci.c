@@ -58,6 +58,32 @@ void pcibios_name_device(struct pci_dev *dev)
 DECLARE_PCI_FIXUP_HEADER(PCI_ANY_ID, PCI_ANY_ID, pcibios_name_device);
 #endif
 
+#ifdef CONFIG_PCI_IOV
+int pcibios_sriov_enable(struct pci_dev *pdev, u16 num_vfs)
+{  	
+	dev_info(&pdev->dev, "Enable pseries sriov.\n" );		
+	/* Allocate PCI data */
+	add_dev_pci_data(pdev);    
+	return 0;
+}
+
+void pcibios_bus_add_device(struct pci_dev *pdev)
+{
+	struct pci_dn *pdn = pci_get_pdn(pdev);
+	
+	if (!pdev->is_virtfn)
+		return;
+
+	/*
+	 * The following operations will fail if VF's sysfs files
+	 * aren't created or its resources aren't finalized.
+	 */
+	eeh_add_device_early(pdn);
+	eeh_add_device_late(pdev);
+	eeh_sysfs_add_device(pdev);
+}
+#endif 
+
 static void __init pSeries_request_regions(void)
 {
 	if (!isa_io_base)
