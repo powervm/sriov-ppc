@@ -378,6 +378,138 @@ static void rtas_hack_32bit_msi_gen2(struct pci_dev *pdev)
 	pci_write_config_dword(pdev, pdev->msi_cap + PCI_MSI_ADDRESS_HI, 0);
 }
 
+#ifdef CONFIG_PCI_IOV
+
+void __iomem *pci_msix_desc_addr_for_pf(struct pci_dev *pdev, int num)
+{ 
+	struct msi_desc *desc =  first_pci_msi_entry(pdev->physfn);
+	
+	return desc->mask_base +
+		num * PCI_MSIX_ENTRY_SIZE;
+}
+
+void get_pf_msi_msg( struct pci_dev *pdev, struct msi_msg * msg, int start )	
+{
+	void __iomem *base = pci_msix_desc_addr_for_pf(pdev, start);
+   
+       	msg->address_lo = readl(base + PCI_MSIX_ENTRY_LOWER_ADDR);
+	msg->address_hi = readl(base + PCI_MSIX_ENTRY_UPPER_ADDR);
+	msg->data = readl(base + PCI_MSIX_ENTRY_DATA);
+}
+
+static int get_num_msis( struct pci_dev *pdev )	
+{
+	struct msi_desc *entry;
+	int i;
+	i = 0;
+	for_each_pci_msi_entry(entry, pdev) {
+		i++;
+	}
+	return i;
+}
+int get_num_pfs( struct pci_dev *pdev )
+{
+	int i;
+	i = 0;
+	for_each_pci_dev(pdev) {
+
+		if(pdev->is_physfn)
+			i++;
+	}
+	return i;
+}
+
+static int get_max_for_device(struct pci_dev *pdev, char *prop_name)
+{
+	struct device_node *dn;
+	struct pci_dn *pdn;
+	const __be32 *p;
+	u32 req_msi;
+
+	pdn = pci_get_pdn(pdev);
+	if (!pdn)
+		return -ENODEV;
+
+	dn = pdn->node;
+
+	p = of_get_property(dn, prop_name, NULL);
+	if (!p) {
+		pr_debug("rtas_msi: No %s on %s\n", prop_name, dn->full_name);
+		return -ENOENT;
+	}
+
+	req_msi = be32_to_cpup(p);
+	pr_debug("rtas_msi: %s requests  %d MSIs\n", prop_name, req_msi);
+	return req_msi;
+}
+static int create_dynamic_vf_msis(struct pci_dev *pdev,  int type)
+{
+	int max_msis;	
+	max_msis = get_max_for_device( pdev->physfn, 
+				       ((type == PCI_CAP_ID_MSIX )
+					?"ibm,req#msi-x":"ibm,req#msi") );
+	return max_msis;
+}
+
+static int setup_dynamic_vf_msis(struct pci_dev *pdev, int nvec_in, int type)
+{
+	int index;
+	int hwirq, virq, rc;
+	struct msi_desc *entry;
+	struct pci_dn *pdn;
+	struct msi_msg msg;
+	int device_id;
+	int max_msis;
+	int vf_msis;
+
+	vf_msis = get_num_msis(pdev);
+	device_id =  PCI_DEVID(pdev->bus->number, 
+			       pdev->devfn) - get_num_pfs(pdev->physfn);		
+	index = get_num_msis(pdev->physfn) + 1;	    
+	max_msis = get_max_for_device( pdev->physfn, 
+				       ((type == PCI_CAP_ID_MSIX )
+					?"ibm,req#msi-x":"ibm,req#msi") );
+	pdn =  pci_get_pdn(pdev->physfn); // hardware expects this guy
+	dev_info(&pdev->dev,"rtas_msi: parent has entry num %d, max msis for device %d\n", index-1, max_msis);
+        
+	if( max_msis <  (index+ (nvec_in * device_id) + vf_msis  )) 
+		return -ENOSPC; // this means we dont have enough vectors
+
+       	// add the entries to child
+	for_each_pci_msi_entry(entry, pdev) {
+
+	       int msi_vec = index + nvec_in * device_id;	
+		get_pf_msi_msg(pdev, &msg,  msi_vec);
+		__pci_write_msi_msg(entry, &msg);
+
+		hwirq = rtas_query_irq_number(pdn, msi_vec);
+		if (hwirq < 0) {
+			dev_info(&pdev->dev, "rtas_msi: error (%d) getting hwirq\n", rc);
+			return hwirq;
+		}
+
+		virq = irq_create_mapping(NULL, hwirq);
+
+		if (virq == NO_IRQ) {
+			dev_info(&pdev->dev,"rtas_msi: Failed mapping hwirq %d\n", hwirq);
+			return -ENOSPC;
+		}
+
+		dev_info(&pdev->dev, "rtas_msi: allocated virq %d\n", virq);
+		irq_set_msi_desc(virq, entry);
+
+		/* Read config space back so we can restore after reset */
+		__pci_read_msi_msg(entry, &msg);
+		entry->msg = msg;
+        
+		index++;
+	}
+
+	return 0;
+}
+
+#endif
+
 static int rtas_setup_msi_irqs(struct pci_dev *pdev, int nvec_in, int type)
 {
 	struct pci_dn *pdn;
@@ -387,6 +519,10 @@ static int rtas_setup_msi_irqs(struct pci_dev *pdev, int nvec_in, int type)
 	int nvec = nvec_in;
 	int use_32bit_msi_hack = 0;
 
+#ifdef CONFIG_PCI_IOV
+	if(!is_of_vf(pdev))
+		return setup_dynamic_vf_msis(pdev,nvec_in,type);
+#endif
 	if (type == PCI_CAP_ID_MSIX)
 		rc = check_req_msix(pdev, nvec);
 	else
@@ -415,6 +551,10 @@ static int rtas_setup_msi_irqs(struct pci_dev *pdev, int nvec_in, int type)
 			nvec = m;
 	}
 
+#ifdef CONFIG_PCI_IOV
+	if(pdev->is_physfn && pdev->sriov )
+		nvec = create_dynamic_vf_msis(pdev, type);
+#endif
 	pdn = pci_get_pdn(pdev);
 
 	/*
@@ -536,3 +676,5 @@ static int rtas_msi_init(void)
 	return 0;
 }
 machine_arch_initcall(pseries, rtas_msi_init);
+
+

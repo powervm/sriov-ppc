@@ -67,6 +67,14 @@ int pcibios_sriov_enable(struct pci_dev *pdev, u16 num_vfs)
 	return 0;
 }
 
+int pcibios_sriov_disable(struct pci_dev *pdev)
+{
+	dev_info(&pdev->dev, "Disable pseries sriov.\n" );		
+	/* Release PCI data */
+	remove_dev_pci_data(pdev);
+	return 0;
+}
+
 void pcibios_bus_add_device(struct pci_dev *pdev)
 {
 	struct pci_dn *pdn = pci_get_pdn(pdev);
