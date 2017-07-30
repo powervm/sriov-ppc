@@ -445,7 +445,7 @@ static int get_max_for_device(struct pci_dev *pdev, char *prop_name)
 static int create_dynamic_vf_msis(struct pci_dev *pdev,  int type)
 {
 	int max_msis;	
-	max_msis = get_max_for_device( pdev->physfn, 
+	max_msis = get_max_for_device( pdev, 
 				       ((type == PCI_CAP_ID_MSIX )
 					?"ibm,req#msi-x":"ibm,req#msi") );
 	return max_msis;
@@ -456,21 +456,22 @@ static int setup_dynamic_vf_msis(struct pci_dev *pdev, int nvec_in, int type)
 	int index;
 	int hwirq, virq, rc;
 	struct msi_desc *entry;
-	struct pci_dn *pdn;
+	struct pci_dn *pdn, *vf_pdn;
 	struct msi_msg msg;
 	int device_id;
 	int max_msis;
 	int vf_msis;
 
+	vf_pdn = pci_get_pdn(pdev);
 	vf_msis = get_num_msis(pdev);
-	device_id =  PCI_DEVID(pdev->bus->number, 
-			       pdev->devfn) - get_num_pfs(pdev->physfn);		
+	device_id =  PCI_FUNC(vf_pdn->devfn) - get_num_pfs(pdev->physfn);		
 	index = get_num_msis(pdev->physfn) + 1;	    
 	max_msis = get_max_for_device( pdev->physfn, 
 				       ((type == PCI_CAP_ID_MSIX )
 					?"ibm,req#msi-x":"ibm,req#msi") );
 	pdn =  pci_get_pdn(pdev->physfn); // hardware expects this guy
-	dev_info(&pdev->dev,"rtas_msi: parent has entry num %d, max msis for device %d\n", index-1, max_msis);
+	dev_info(&pdev->dev,"rtas_msi: parent has entry num %d, max msis for device %d, device_id %x, nvec_in %x \n", 
+			 index-1, max_msis, device_id, nvec_in );
         
 	if( max_msis <  (index+ (nvec_in * device_id) + vf_msis  )) 
 		return -ENOSPC; // this means we dont have enough vectors
@@ -520,7 +521,7 @@ static int rtas_setup_msi_irqs(struct pci_dev *pdev, int nvec_in, int type)
 	int use_32bit_msi_hack = 0;
 
 #ifdef CONFIG_PCI_IOV
-	if(!is_of_vf(pdev))
+	if(!pdev->is_physfn && !is_of_vf(pdev))
 		return setup_dynamic_vf_msis(pdev,nvec_in,type);
 #endif
 	if (type == PCI_CAP_ID_MSIX)
