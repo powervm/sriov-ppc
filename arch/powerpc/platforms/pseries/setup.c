@@ -450,6 +450,147 @@ static void __init find_and_init_phbs(void)
 	of_pci_check_probe_only();
 }
 
+#ifdef CONFIG_PCI_IOV
+//static inline bool pci_is_m64_flags(unsigned long resource_flags)
+//{
+//	unsigned long flags = (IORESOURCE_MEM_64 | IORESOURCE_PREFETCH);
+//
+//	return (resource_flags & flags) == flags;
+//}
+//
+//resource_size_t get_m64_size(struct  pci_controller *hose )
+//{
+//	struct resource * res64 = &hose->mem_resources[1];
+//	resource_size_t  m64_size = resource_size(res64);
+//	return  m64_size;
+//}
+//
+//static void pci_ioda_fixup_iov_resources(struct pci_dev *pdev)
+//{
+//	struct pci_controller *hose = pci_bus_to_host(pdev->bus);
+//	/* Configure M64 informations */
+//	resource_size_t  m64_size = get_m64_size(hose);
+//	const resource_size_t gate = m64_size >> 2;
+//	struct resource *res;
+//	int i;
+//	resource_size_t size, total_vf_bar_sz;
+//	struct pci_dn *pdn;
+//	int mul, total_vfs;
+//
+//	if (!pdev->is_physfn || pdev->is_added)
+//		return;
+//	dev_info(&pdev->dev, "Calling fixup_iov_resources size of resource %Lx with gate %Lx"
+//			, m64_size, gate );		
+//
+//	pdn = pci_get_pdn(pdev);
+//	pdn->vfs_expanded = 0;
+//	pdn->m64_single_mode = false;
+//
+//	total_vfs = pci_sriov_get_totalvfs(pdev);
+//	mul = 1; // phb->ioda.total_pe_num;  single pe
+//	total_vf_bar_sz = 0;
+//
+//	for (i = 0; i < PCI_SRIOV_NUM_BARS; i++) {
+//		res = &pdev->resource[i + PCI_IOV_RESOURCES];
+//		if (!res->flags || res->parent)
+//			continue;
+//		if (!pci_is_m64_flags(res->flags)) {
+//			dev_info(&pdev->dev, "Don't support SR-IOV with"
+//					" non M64 VF BAR%d: %pR. \n",
+//				 i, res);
+//			goto truncate_iov;
+//		}
+//
+//		total_vf_bar_sz += pci_iov_resource_size(pdev,
+//				i + PCI_IOV_RESOURCES);
+//
+//		/*
+//		 * If bigger than quarter of M64 segment size, just round up
+//		 * power of two.
+//		 *
+//		 * Generally, one M64 BAR maps one IOV BAR. To avoid conflict
+//		 * with other devices, IOV BAR size is expanded to be
+//		 * (total_pe * VF_BAR_size).  When VF_BAR_size is half of M64
+//		 * segment size , the expanded size would equal to half of the
+//		 * whole M64 space size, which will exhaust the M64 Space and
+//		 * limit the system flexibility.  This is a design decision to
+//		 * set the boundary to quarter of the M64 segment size.
+//		 */
+//		if (total_vf_bar_sz > gate) {
+//			mul = roundup_pow_of_two(total_vfs);
+//			dev_info(&pdev->dev,
+//				"VF BAR Total IOV size %llx > %llx, roundup to %d VFs\n",
+//				total_vf_bar_sz, gate, mul);
+//			pdn->m64_single_mode = true;
+//			break;
+//		}
+//	}
+//
+//	for (i = 0; i < PCI_SRIOV_NUM_BARS; i++) {
+//		res = &pdev->resource[i + PCI_IOV_RESOURCES];
+//		if (!res->flags || res->parent)
+//			continue;
+//
+//		size = pci_iov_resource_size(pdev, i + PCI_IOV_RESOURCES);
+//		/*
+//		 * On PHB3, the minimum size alignment of M64 BAR in single
+//		 * mode is 32MB.
+//		 */
+//		if (pdn->m64_single_mode && (size < SZ_32M))
+//			goto truncate_iov;
+//		dev_info(&pdev->dev, " Fixing VF BAR%d: %pR to\n", i, res);
+//		res->end = res->start + size * mul - 1;
+//		dev_info(&pdev->dev, "                       %pR\n", res);
+//		dev_info(&pdev->dev, "VF BAR%d: %pR (expanded to %d VFs for PE alignment)",
+//			 i, res, mul);
+//	}
+//	pdn->vfs_expanded = mul;
+//
+//	return;
+//
+//truncate_iov:
+//	/* To save MMIO space, IOV BAR is truncated. */
+//	for (i = 0; i < PCI_SRIOV_NUM_BARS; i++) {
+//		res = &pdev->resource[i + PCI_IOV_RESOURCES];
+//		res->flags = 0;
+//		res->end = res->start - 1;
+//	}
+//}
+
+//static resource_size_t pci_iov_resource_alignment(struct pci_dev *pdev,
+//						      int resno)
+//{
+//	struct pci_controller *hose = pci_bus_to_host(pdev->bus);
+//	struct pci_dn *pdn = pci_get_pdn(pdev);
+//	resource_size_t align;
+//
+//	/*
+//	 * On PowerNV platform, IOV BAR is mapped by M64 BAR to enable the
+//	 * SR-IOV. While from hardware perspective, the range mapped by M64
+//	 * BAR should be size aligned.
+//	 *
+//	 * When IOV BAR is mapped with M64 BAR in Single PE mode, the extra
+//	 * powernv-specific hardware restriction is gone. But if just use the
+//	 * VF BAR size as the alignment, PF BAR / VF BAR may be allocated with
+//	 * in one segment of M64 #15, which introduces the PE conflict between
+//	 * PF and VF. Based on this, the minimum alignment of an IOV BAR is
+//	 * m64_segsize.
+//	 *
+//	 * This function returns the total IOV BAR size if M64 BAR is in
+//	 * Shared PE mode or just VF BAR size if not.
+//	 * If the M64 BAR is in Single PE mode, return the VF BAR size or
+//	 * M64 segment size if IOV BAR size is less.
+//	 */
+//	align = pci_iov_resource_size(pdev, resno);
+//	if (!pdn->vfs_expanded)
+//		return align;
+//	if (pdn->m64_single_mode)
+//		return max(align, get_m64_size(hose));
+//
+//	return pdn->vfs_expanded * align;
+//}
+#endif
+
 static void __init pSeries_setup_arch(void)
 {
 	set_arch_panic_timeout(10, ARCH_PANIC_TIMEOUT);
@@ -481,6 +622,13 @@ static void __init pSeries_setup_arch(void)
 		vpa_init(boot_cpuid);
 		ppc_md.power_save = pseries_lpar_idle;
 		ppc_md.enable_pmcs = pseries_lpar_enable_pmcs;
+#ifdef CONFIG_PCI_IOV
+		/* we need linux to probe and assign resources */
+		pci_clear_flags(PCI_PROBE_ONLY);
+		pci_add_flags(PCI_REASSIGN_ALL_RSRC);
+//		ppc_md.pcibios_fixup_sriov = pci_ioda_fixup_iov_resources;
+//	       	ppc_md.pcibios_iov_resource_alignment = pci_iov_resource_alignment;
+#endif
 	} else {
 		/* No special idle routine */
 		ppc_md.enable_pmcs = power4_enable_pmcs;
@@ -702,6 +850,7 @@ static int pSeries_pci_probe_mode(struct pci_bus *bus)
 		return PCI_PROBE_DEVTREE;
 	return PCI_PROBE_NORMAL;
 }
+
 
 struct pci_controller_ops pseries_pci_controller_ops = {
 	.probe_mode		= pSeries_pci_probe_mode,

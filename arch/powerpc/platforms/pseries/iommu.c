@@ -1175,8 +1175,21 @@ static int dma_set_mask_pSeriesLP(struct device *dev, u64 dma_mask)
 
 	/* only attempt to use a new window if 64-bit DMA is requested */
 	if (!disable_ddw && dma_mask == DMA_BIT_MASK(64)) {
+#ifdef CONFIG_PCI_IOV	
+		if (!is_of_vf(pdev)) {
+			pdev = pdev->physfn; //use pf device 
+			dn = pci_device_to_OF_node(pdev);
+			dev_dbg(dev, "Using pf device node %s\n", dn->full_name);
+
+		}
+		else {
+			dn = pci_device_to_OF_node(pdev);
+			dev_dbg(dev, "node is %s\n", dn->full_name);
+		}
+#else
 		dn = pci_device_to_OF_node(pdev);
 		dev_dbg(dev, "node is %s\n", dn->full_name);
+#endif
 
 		/*
 		 * the device tree might contain the dma-window properties
