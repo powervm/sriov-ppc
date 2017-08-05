@@ -322,7 +322,8 @@ void pci_bus_add_device(struct pci_dev *dev)
 	pci_proc_attach_device(dev);
 	pci_bridge_d3_update(dev);
 
-	dev->match_driver = true;
+	if (dev->match_driver == 0)
+		dev->match_driver = 1;
 	retval = device_attach(&dev->dev);
 	if (retval < 0 && retval != -EPROBE_DEFER) {
 		dev_warn(&dev->dev, "device attach failed (%d)\n", retval);

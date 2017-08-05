@@ -1554,7 +1554,7 @@ static int iommu_init_pci(struct amd_iommu *iommu)
 		return -ENODEV;
 
 	/* Prevent binding other PCI device drivers to IOMMU devices */
-	iommu->dev->match_driver = false;
+	iommu->dev->match_driver = 0;
 
 	pci_read_config_dword(iommu->dev, cap_ptr + MMIO_CAP_HDR_OFFSET,
 			      &iommu->cap);

@@ -1958,7 +1958,7 @@ void pci_device_add(struct pci_dev *dev, struct pci_bus *bus)
 	pci_set_msi_domain(dev);
 
 	/* Notifier could use PCI capabilities */
-	dev->match_driver = false;
+	dev->match_driver = 0;
 	ret = device_add(&dev->dev);
 	WARN_ON(ret < 0);
 }
