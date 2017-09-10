@@ -302,16 +302,9 @@ void __weak pcibios_resource_survey_bus(struct pci_bus *bus) { }
 
 void __weak pcibios_bus_add_device(struct pci_dev *pdev) { }
 
-/**
- * pci_bus_add_device - start driver for a single device
- * @dev: device to add
- *
- * This adds add sysfs entries and start device drivers
- */
-void pci_bus_add_device(struct pci_dev *dev)
-{
-	int retval;
 
+void pci_bus_add_sysfs_entries(struct pci_dev *dev)
+{
 	/*
 	 * Can not put in pci_device_add yet because resources
 	 * are not assigned yet for some devices.
@@ -322,6 +315,12 @@ void pci_bus_add_device(struct pci_dev *dev)
 	pci_proc_attach_device(dev);
 	pci_bridge_d3_device_changed(dev);
 
+}
+
+void pci_bus_match_device_driver(struct pci_dev *dev)
+{
+	int retval;
+	
 	dev->match_driver = true;
 	retval = device_attach(&dev->dev);
 	if (retval < 0 && retval != -EPROBE_DEFER) {
@@ -333,6 +332,38 @@ void pci_bus_add_device(struct pci_dev *dev)
 
 	dev->is_added = 1;
 }
+
+#ifdef CONFIG_PCI_IOV
+void __weak pci_bus_match_virtfn_driver(struct pci_dev *dev)
+{
+	pci_bus_match_device_driver(dev);
+}
+/**
+ * pci_bus_add_virtfn_device - start driver for a virtual function device
+ * @dev: device to add
+ *
+ * This adds add sysfs entries and start device drivers for virtual function devices
+ *
+ */
+void pci_bus_add_virtfn_device(struct pci_dev *pdev)
+{
+	pci_bus_add_sysfs_entries(pdev);
+	pci_bus_match_virtfn_driver(pdev);
+}
+EXPORT_SYMBOL_GPL(pci_bus_add_virtfn_device);
+#endif
+/**
+ * pci_bus_add_device - start driver for a single device
+ * @dev: device to add
+ *
+ * This adds add sysfs entries and start device drivers
+ */
+void pci_bus_add_device(struct pci_dev *dev)
+{
+	pci_bus_add_sysfs_entries(dev);
+	pci_bus_match_device_driver(dev);
+}
+
 EXPORT_SYMBOL_GPL(pci_bus_add_device);
 
 /**

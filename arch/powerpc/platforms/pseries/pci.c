@@ -58,6 +58,23 @@ void pcibios_name_device(struct pci_dev *dev)
 DECLARE_PCI_FIXUP_HEADER(PCI_ANY_ID, PCI_ANY_ID, pcibios_name_device);
 #endif
 
+#ifdef CONFIG_PCI_IOV
+void pci_bus_match_virtfn_driver(struct pci_dev *dev) 
+{
+	/*
+	 * Per PSeries SR-IOV requirement there is no need to
+	 * match virtual function device driver as firmware
+	 * will load the device node in the device tree dynamically.
+	 * Since there is no matching of device driver there is
+	 * no failure when attaching driver, therefore there is no 
+	 * need to remove sysfs file. Furthermore, the VF platform
+	 * management still needs to exist in sysfs files to be used
+	 * by management. 
+	 * */
+	dev->is_added = 1;
+}
+#endif 
+
 static void __init pSeries_request_regions(void)
 {
 	if (!isa_io_base)
