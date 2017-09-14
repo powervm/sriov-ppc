@@ -212,8 +212,8 @@ struct pci_dn {
 	struct eeh_dev *edev;		/* eeh device */
 #endif
 #define IODA_INVALID_PE		0xFFFFFFFF
-#ifdef CONFIG_PCI_IOV
 	unsigned int pe_number;
+#ifdef CONFIG_PCI_IOV
 	int     vf_index;		/* VF index in the PF */
 	u16     vfs_expanded;		/* number of VFs IOV BAR expanded */
 	u16     num_vfs;		/* number of VFs enabled*/
@@ -221,8 +221,8 @@ struct pci_dn {
 	bool    m64_single_mode;	/* Use M64 BAR in Single Mode */
 #define IODA_INVALID_M64        (-1)
 	int     (*m64_map)[PCI_SRIOV_NUM_BARS];
-	int	mps;			/* Maximum Payload Size */
 #endif /* CONFIG_PCI_IOV */
+	int	mps;			/* Maximum Payload Size */
 	struct list_head child_list;
 	struct list_head list;
 };

@@ -73,6 +73,20 @@ void pci_bus_match_virtfn_driver(struct pci_dev *dev)
 	 * */
 	dev->is_added = 1;
 }
+
+int pseries_pcibios_sriov_enable(struct pci_dev *pdev, u16 num_vfs)
+{  	
+	/* Allocate PCI data */
+	add_dev_pci_data(pdev);    
+	return 0;
+}
+
+int pseries_pcibios_sriov_disable(struct pci_dev *pdev)
+{
+	/* Release PCI data */
+	remove_dev_pci_data(pdev);
+	return 0;
+}
 #endif 
 
 static void __init pSeries_request_regions(void)
@@ -93,6 +107,11 @@ void __init pSeries_final_fixup(void)
 	pSeries_request_regions();
 
 	eeh_addr_cache_build();
+
+#ifdef CONFIG_PCI_IOV
+	ppc_md.pcibios_sriov_enable = pseries_pcibios_sriov_enable;
+	ppc_md.pcibios_sriov_disable = pseries_pcibios_sriov_disable;
+#endif
 }
 
 /*
