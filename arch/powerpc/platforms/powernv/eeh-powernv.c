@@ -44,6 +44,22 @@
 static bool pnv_eeh_nb_init = false;
 static int eeh_event_irq = -EINVAL;
 
+void pnv_pcibios_bus_add_device(struct pci_dev *pdev)
+{
+	struct pci_dn *pdn = pci_get_pdn(pdev);
+
+	if (!pdev->is_virtfn)
+		return;
+
+	/*
+	 * The following operations will fail if VF's sysfs files
+	 * aren't created or its resources aren't finalized.
+	 */
+	eeh_add_device_early(pdn);
+	eeh_add_device_late(pdev);
+	eeh_sysfs_add_device(pdev);
+}
+
 static int pnv_eeh_init(void)
 {
 	struct pci_controller *hose;
@@ -81,6 +97,8 @@ static int pnv_eeh_init(void)
 
 		break;
 	}
+
+	ppc_md.pcibios_bus_add_device = pnv_pcibios_bus_add_device;
 
 	return 0;
 }
@@ -1750,22 +1768,6 @@ static struct eeh_ops pnv_eeh_ops = {
 	.next_error		= pnv_eeh_next_error,
 	.restore_config		= pnv_eeh_restore_config
 };
-
-void pcibios_bus_add_device(struct pci_dev *pdev)
-{
-	struct pci_dn *pdn = pci_get_pdn(pdev);
-
-	if (!pdev->is_virtfn)
-		return;
-
-	/*
-	 * The following operations will fail if VF's sysfs files
-	 * aren't created or its resources aren't finalized.
-	 */
-	eeh_add_device_early(pdn);
-	eeh_add_device_late(pdev);
-	eeh_sysfs_add_device(pdev);
-}
 
 #ifdef CONFIG_PCI_IOV
 static void pnv_pci_fixup_vf_mps(struct pci_dev *pdev)
