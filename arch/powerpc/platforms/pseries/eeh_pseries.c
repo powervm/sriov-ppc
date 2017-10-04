@@ -793,6 +793,71 @@ static int pseries_eeh_restore_config(struct pci_dn *pdn)
 
 	return 0;
 }
+static int pseries_call_allow_unfreeze(struct eeh_dev *edev)
+{
+	struct eeh_pe *pe; 
+	struct pci_dn *pdn;
+	int cur_vfs, rc, config_addr, vf_index;
+	u16 * vf_pe_array;
+	int ibm_allow_unfreeze = rtas_token("ibm,open-sriov-allow-unfreeze");
+
+	if (ibm_allow_unfreeze == RTAS_UNKNOWN_SERVICE)
+		return 0;
+
+	pe = eeh_dev_to_pe(edev);
+	cur_vfs = pci_num_vf(edev->pdev);
+	rc = 0;
+	
+	if(cur_vfs) {
+
+		/* For each of its vf 
+		 * call allow unfreeze
+		 */
+
+		config_addr = pe->config_addr;
+		vf_pe_array = kzalloc(RTAS_DATA_BUF_SIZE, GFP_KERNEL);
+		if (!vf_pe_array)
+			return -EINVAL;
+
+		pdn = eeh_dev_to_pdn(edev);
+		
+		for (vf_index = 0; vf_index < cur_vfs; vf_index++) {
+			vf_pe_array[vf_index] = pdn->pe_num_map[vf_index];
+		}
+		
+		spin_lock(&rtas_data_buf_lock);
+		memcpy(rtas_data_buf, vf_pe_array, cur_vfs*sizeof(u16));
+		rc = rtas_call(ibm_allow_unfreeze, 5, 1, NULL,
+			       config_addr, 
+			       BUID_HI(pe->phb->buid),
+			       BUID_LO(pe->phb->buid),
+			       rtas_data_buf, cur_vfs*sizeof(u16) );
+		spin_unlock(&rtas_data_buf_lock);
+	
+		if (rc) {
+			pr_warn("%s: Failed to allow unfreeze for PHB#%x-PE#%x, rc=%x\n",
+				__func__, pe->phb->global_number, pe->config_addr, rc);
+			return 0;
+		}
+		kfree(vf_pe_array);
+	}
+
+		
+	return rc;
+}
+static int pseries_notify_resume(struct pci_dn *pdn)
+{
+	struct eeh_dev *edev = pdn_to_eeh_dev(pdn);
+
+	if (!edev)
+		return -EEXIST;
+
+	if (edev->pdev->is_physfn) {
+		return pseries_call_allow_unfreeze(edev);
+	}
+
+	return 0;
+}
 
 static struct eeh_ops pseries_eeh_ops = {
 	.name			= "pseries",
@@ -809,7 +874,8 @@ static struct eeh_ops pseries_eeh_ops = {
 	.read_config		= pseries_eeh_read_config,
 	.write_config		= pseries_eeh_write_config,
 	.next_error		= NULL,
-	.restore_config		= pseries_eeh_restore_config
+	.restore_config		= pseries_eeh_restore_config,
+	.notify_resume		= pseries_notify_resume
 };
 
 /**
