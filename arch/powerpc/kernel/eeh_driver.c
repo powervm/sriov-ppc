@@ -361,6 +361,7 @@ static void *eeh_report_resume(void *data, void *userdata)
 	bool was_in_error;
 	struct pci_driver *driver;
 	char *envp[] = { "EVENT=EEH_RESUME", "ONLINE=1", NULL };
+	struct pci_dn *pdn = eeh_dev_to_pdn(edev);
 
 	if (!dev || eeh_dev_removed(edev) || eeh_pe_passed(edev->pe))
 		return NULL;
@@ -384,6 +385,9 @@ static void *eeh_report_resume(void *data, void *userdata)
 	driver->err_handler->resume(dev);
 	eeh_pcid_put(dev);
 	kobject_uevent_env(&dev->dev.kobj, KOBJ_CHANGE, envp);
+#ifdef CONFIG_PCI_IOV
+	eeh_ops->notify_resume(pdn);
+#endif
 	return NULL;
 }
 
