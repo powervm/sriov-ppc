@@ -55,6 +55,28 @@ static int ibm_get_config_addr_info;
 static int ibm_get_config_addr_info2;
 static int ibm_configure_pe;
 
+void pseries_pcibios_bus_add_device(struct pci_dev *pdev)
+{
+	struct pci_dn *pdn = pci_get_pdn(pdev);
+	
+	if (!pdev->is_virtfn)
+		return;
+
+	pdn->device_id  =  pdev->device;
+	pdn->vendor_id  =  pdev->vendor;
+	pdn->class_code =  pdev->class;
+	
+	/*
+	 * The following operations will fail if VF's sysfs files
+	 * aren't created or its resources aren't finalized.
+	 */
+	eeh_add_device_early(pdn);
+	eeh_add_device_late(pdev);
+	eeh_sysfs_add_device(pdev);
+	pdev->match_driver = -1;
+	pdev->dev_flags |= PCI_DEV_FLAGS_ASSIGNED;	
+}
+
 /*
  * Buffer for reporting slot-error-detail rtas calls. Its here
  * in BSS, and not dynamically alloced, so that it ends up in
@@ -140,6 +162,9 @@ static int pseries_eeh_init(void)
 
 	/* Set EEH probe mode */
 	eeh_add_flag(EEH_PROBE_MODE_DEVTREE | EEH_ENABLE_IO_FOR_LOG);
+	
+	/* Set EEH machine dependant code */
+	ppc_md.pcibios_bus_add_device = pseries_pcibios_bus_add_device;
 
 	/* Set EEH machine dependent code */
 	ppc_md.pcibios_bus_add_device = pseries_pcibios_bus_add_device;
@@ -709,6 +734,154 @@ static int pseries_eeh_write_config(struct pci_dn *pdn, int where, int size, u32
 {
 	return rtas_write_config(pdn, where, size, val);
 }
+static int pseries_eeh_restore_vf_config(struct pci_dn *pdn)
+{
+	struct eeh_dev *edev = pdn_to_eeh_dev(pdn);
+	u32 devctl, cmd, cap2, aer_capctl;
+	int old_mps;
+
+	if (edev->pcie_cap) {
+		/* Restore MPS */
+		old_mps = (ffs(pdn->mps) - 8) << 5;
+		eeh_ops->read_config(pdn, edev->pcie_cap + PCI_EXP_DEVCTL,
+				     2, &devctl);
+		devctl &= ~PCI_EXP_DEVCTL_PAYLOAD;
+		devctl |= old_mps;
+		eeh_ops->write_config(pdn, edev->pcie_cap + PCI_EXP_DEVCTL,
+				      2, devctl);
+
+		/* Disable Completion Timeout */
+		eeh_ops->read_config(pdn, edev->pcie_cap + PCI_EXP_DEVCAP2,
+				     4, &cap2);
+		if (cap2 & 0x10) {
+			eeh_ops->read_config(pdn,
+					     edev->pcie_cap + PCI_EXP_DEVCTL2,
+					     4, &cap2);
+			cap2 |= 0x10;
+			eeh_ops->write_config(pdn,
+					      edev->pcie_cap + PCI_EXP_DEVCTL2,
+					      4, cap2);
+		}
+	}
+
+	/* Enable SERR and parity checking */
+	eeh_ops->read_config(pdn, PCI_COMMAND, 2, &cmd);
+	cmd |= (PCI_COMMAND_PARITY | PCI_COMMAND_SERR);
+	eeh_ops->write_config(pdn, PCI_COMMAND, 2, cmd);
+
+	/* Enable report various errors */
+	if (edev->pcie_cap) {
+		eeh_ops->read_config(pdn, edev->pcie_cap + PCI_EXP_DEVCTL,
+				     2, &devctl);
+		devctl &= ~PCI_EXP_DEVCTL_CERE;
+		devctl |= (PCI_EXP_DEVCTL_NFERE |
+			   PCI_EXP_DEVCTL_FERE |
+			   PCI_EXP_DEVCTL_URRE);
+		eeh_ops->write_config(pdn, edev->pcie_cap + PCI_EXP_DEVCTL,
+				      2, devctl);
+	}
+
+	/* Enable ECRC generation and check */
+	if (edev->pcie_cap && edev->aer_cap) {
+		eeh_ops->read_config(pdn, edev->aer_cap + PCI_ERR_CAP,
+				     4, &aer_capctl);
+		aer_capctl |= (PCI_ERR_CAP_ECRC_GENE | PCI_ERR_CAP_ECRC_CHKE);
+		eeh_ops->write_config(pdn, edev->aer_cap + PCI_ERR_CAP,
+				      4, aer_capctl);
+	}
+
+	return 0;
+}
+
+static int pseries_eeh_restore_config(struct pci_dn *pdn)
+{
+	struct eeh_dev *edev = pdn_to_eeh_dev(pdn);
+	s64 ret;
+
+	if (!edev)
+		return -EEXIST;
+
+	/*
+	 * FIXME: The MPS, error routing rules, timeout setting are worthy
+	 * to be exported by firmware in extendible way.
+	 */
+	if (edev->physfn) {
+		ret = pseries_eeh_restore_vf_config(pdn);
+	} 
+
+	if (ret) {
+		pr_warn("%s: Can't reinit PCI dev 0x%x (%lld)\n",
+			__func__, edev->config_addr, ret);
+		return -EIO;
+	}
+
+	return 0;
+}
+static int pseries_call_allow_unfreeze(struct eeh_dev *edev)
+{
+	struct eeh_pe *pe; 
+	struct pci_dn *pdn;
+	int cur_vfs, rc, config_addr, vf_index;
+	u16 * vf_pe_array;
+	int ibm_allow_unfreeze = rtas_token("ibm,open-sriov-allow-unfreeze");
+
+	if (ibm_allow_unfreeze == RTAS_UNKNOWN_SERVICE)
+		return 0;
+
+	pe = eeh_dev_to_pe(edev);
+	cur_vfs = pci_num_vf(edev->pdev);
+	rc = 0;
+	
+	if(cur_vfs) {
+
+		/* For each of its vf 
+		 * call allow unfreeze
+		 */
+
+		config_addr = pe->config_addr;
+		vf_pe_array = kzalloc(RTAS_DATA_BUF_SIZE, GFP_KERNEL);
+		if (!vf_pe_array)
+			return -EINVAL;
+
+		pdn = eeh_dev_to_pdn(edev);
+		
+		for (vf_index = 0; vf_index < cur_vfs; vf_index++) {
+			vf_pe_array[vf_index] = pdn->pe_num_map[vf_index];
+		}
+		
+		spin_lock(&rtas_data_buf_lock);
+		memcpy(rtas_data_buf, vf_pe_array, cur_vfs*sizeof(u16));
+		rc = rtas_call(ibm_allow_unfreeze, 5, 1, NULL,
+			       config_addr, 
+			       BUID_HI(pe->phb->buid),
+			       BUID_LO(pe->phb->buid),
+			       rtas_data_buf, cur_vfs*sizeof(u16) );
+		spin_unlock(&rtas_data_buf_lock);
+	
+		if (rc) {
+			pr_warn("%s: Failed to allow unfreeze for PHB#%x-PE#%x, rc=%x\n",
+				__func__, pe->phb->global_number, pe->config_addr, rc);
+			return 0;
+		}
+		kfree(vf_pe_array);
+	}
+
+		
+	return rc;
+}
+static int pseries_notify_resume(struct pci_dn *pdn)
+{
+	struct eeh_dev *edev = pdn_to_eeh_dev(pdn);
+
+	if (!edev)
+		return -EEXIST;
+
+	if (edev->pdev->is_physfn) {
+		return pseries_call_allow_unfreeze(edev);
+	}
+
+	return 0;
+}
 
 static struct eeh_ops pseries_eeh_ops = {
 	.name			= "pseries",
@@ -725,7 +898,8 @@ static struct eeh_ops pseries_eeh_ops = {
 	.read_config		= pseries_eeh_read_config,
 	.write_config		= pseries_eeh_write_config,
 	.next_error		= NULL,
-	.restore_config		= NULL
+	.restore_config		= pseries_eeh_restore_config,
+	.notify_resume		= pseries_notify_resume
 };
 
 /**

@@ -228,6 +228,7 @@ static void *eeh_report_error(void *data, void *userdata)
 
 	edev->in_error = true;
 	eeh_pcid_put(dev);
+	kobject_uevent(&dev->dev.kobj, KOBJ_OFFLINE);
 	return NULL;
 }
 
@@ -358,6 +359,7 @@ static void *eeh_report_resume(void *data, void *userdata)
 	struct pci_dev *dev = eeh_dev_to_pci_dev(edev);
 	bool was_in_error;
 	struct pci_driver *driver;
+	struct pci_dn *pdn = eeh_dev_to_pdn(edev);
 
 	if (!dev || eeh_dev_removed(edev) || eeh_pe_passed(edev->pe))
 		return NULL;
@@ -379,8 +381,11 @@ static void *eeh_report_resume(void *data, void *userdata)
 	}
 
 	driver->err_handler->resume(dev);
-
 	eeh_pcid_put(dev);
+	kobject_uevent(&dev->dev.kobj, KOBJ_ONLINE);
+#ifdef CONFIG_PCI_IOV
+	eeh_ops->notify_resume(pdn);
+#endif
 	return NULL;
 }
 
