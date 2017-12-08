@@ -90,6 +90,38 @@ static ssize_t eeh_pe_state_store(struct device *dev,
 
 static DEVICE_ATTR_RW(eeh_pe_state);
 
+#ifdef CONFIG_PCI_IOV
+static ssize_t eeh_notify_resume_show(struct device *dev,
+				      struct device_attribute *attr, char *buf)
+{
+	struct pci_dev *pdev = to_pci_dev(dev);
+	struct eeh_dev *edev = pci_dev_to_eeh_dev(pdev);
+	struct pci_dn *pdn = pci_get_pdn(pdev);
+
+	if (!edev || !edev->pe)
+		return -ENODEV;
+
+	pdn = pci_get_pdn(pdev);
+	return sprintf(buf, "%d\n", pdn->last_allow_rc);
+}
+
+static ssize_t eeh_notify_resume_store(struct device *dev,
+				       struct device_attribute *attr,
+				       const char *buf, size_t count)
+{
+	struct pci_dev *pdev = to_pci_dev(dev);
+	struct eeh_dev *edev = pci_dev_to_eeh_dev(pdev);
+
+	if (!edev || !edev->pe)
+		return -ENODEV;
+
+	if (eeh_ops->notify_resume(pci_get_pdn(pdev)))
+		return -EIO;
+	return count;
+}
+static DEVICE_ATTR_RW(eeh_notify_resume);
+#endif
+
 void eeh_sysfs_add_device(struct pci_dev *pdev)
 {
 	struct eeh_dev *edev = pci_dev_to_eeh_dev(pdev);
@@ -104,7 +136,13 @@ void eeh_sysfs_add_device(struct pci_dev *pdev)
 	rc += device_create_file(&pdev->dev, &dev_attr_eeh_mode);
 	rc += device_create_file(&pdev->dev, &dev_attr_eeh_pe_config_addr);
 	rc += device_create_file(&pdev->dev, &dev_attr_eeh_pe_state);
-
+#ifdef CONFIG_PCI_IOV
+	if (of_get_property(pci_device_to_OF_node
+			    ((pdev->is_physfn ? pdev : pdev->physfn)),
+			    "ibm,is-open-sriov-pf", NULL))
+		rc += device_create_file(&pdev->dev,
+					 &dev_attr_eeh_notify_resume);
+#endif
 	if (rc)
 		pr_warn("EEH: Unable to create sysfs entries\n");
 	else if (edev)
@@ -128,6 +166,12 @@ void eeh_sysfs_remove_device(struct pci_dev *pdev)
 	device_remove_file(&pdev->dev, &dev_attr_eeh_mode);
 	device_remove_file(&pdev->dev, &dev_attr_eeh_pe_config_addr);
 	device_remove_file(&pdev->dev, &dev_attr_eeh_pe_state);
+#ifdef CONFIG_PCI_IOV
+	if (of_get_property(pci_device_to_OF_node
+			    ((pdev->is_physfn ? pdev : pdev->physfn)),
+			    "ibm,is-open-sriov-pf", NULL))
+		device_remove_file(&pdev->dev, &dev_attr_eeh_notify_resume);
+#endif
 
 	if (edev)
 		edev->mode &= ~EEH_DEV_SYSFS;
